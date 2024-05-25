@@ -185,10 +185,10 @@ export default function Profile() {
           disabled={loading}
           className='bg-slate-700 text-white rounded-lg p-3 uppercase hover:opacity-95 disabled:opacity-80'
         >
-          {loading ? 'Loading...' : 'Update'}
+          {loading ? 'Loading...' : 'Update profile'}
         </button>
         <Link className='bg-green-700 text-white p-3 rounded-lg uppercase text-center hover:opacity-95' to={"/create-listing"}>
-          Create Listing
+          Creaza un anunt nou!
         </Link>
       </form>
       <div onClick={handeSignOut} className='flex justify-between mt-5'>

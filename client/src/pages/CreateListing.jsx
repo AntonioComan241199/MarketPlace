@@ -1,213 +1,340 @@
-import { getDownloadURL, getStorage, ref, uploadBytesResumable } from 'firebase/storage';
+/* eslint-disable no-unused-vars */
 import { useState } from 'react';
+import {
+  getDownloadURL,
+  getStorage,
+  ref,
+  uploadBytesResumable,
+} from 'firebase/storage';
+import { useSelector } from 'react-redux';
 import { app } from '../firebase';
-import { set } from 'mongoose';
+import carData from '../data/carData';
+import { fuelTypes, years } from '../data/constants';
+import { useNavigate } from 'react-router-dom';
 
-const carData = {
-  BMW: ['1 Series', '2 Series', '3 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'Z4', 'M2', 'M3', 'M4', 'M5', 'M8', 'i3', 'i8', 'Other' ],
-  Audi: ['A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q5', 'Q7', 'Q8', 'TT', 'R8', 'S3', 'S4', 'S5', 'S6', 'S7'],
-  Mercedes: ['A-Class', 'B-Class', 'C-Class', 'E-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'G-Class', 'AMG GT', 'SLC', 'SL', 'SLS', 'V-Class', 'X-Class'],
-  Volkswagen: ['Polo', 'Golf', 'Passat', 'Tiguan', 'T-Roc', 'T-Cross', 'Arteon', 'Touran', 'Sharan', 'Caddy', 'Transporter', 'Caravelle', 'California', 'Amarok', 'ID.3', 'ID.4'],
-  Skoda: ['Citigo', 'Fabia', 'Scala', 'Octavia', 'Superb', 'Kamiq', 'Karoq', 'Kodiaq', 'Enyaq', 'Other'],
-  Toyota: ['Aygo', 'Yaris', 'Corolla', 'Camry', 'Prius', 'RAV4', 'C-HR', 'Highlander', 'Land Cruiser', 'Supra', 'GT86', 'Mirai', 'Other'],
-  Honda: ['Jazz', 'Civic', 'HR-V', 'CR-V', 'e', 'NSX', 'Other'],
-  Nissan: ['Micra', 'Leaf', 'Qashqai', 'X-Trail', 'Juke', 'GT-R', 'Other'],
-  Ford: ['Fiesta', 'Focus', 'Mondeo', 'Mustang', 'EcoSport', 'Kuga', 'Puma', 'Edge', 'Ranger', 'Transit', 'Tourneo', 'Other'],
-  Fiat: ['500', '500X', '500L', 'Panda', 'Tipo', 'Punto', 'Doblo', 'Qubo', '500e', 'Other'],
-  Renault: ['Clio', 'Captur', 'Megane', 'Scenic', 'Kadjar', 'Talisman', 'Koleos', 'Zoe', 'Twizy', 'Other'],
-  Peugeot: ['108', '208', '308', '508', '2008', '3008', '5008', 'Rifter', 'Traveller', 'iOn', 'Other'],
-  Citroen: ['C1', 'C3', 'C4', 'C5', 'C3 Aircross', 'C4 Cactus', 'Berlingo', 'SpaceTourer', 'e-Mehari', 'Other'],
-  Opel: ['Adam', 'Corsa', 'Astra', 'Insignia', 'Crossland X', 'Grandland X', 'Mokka', 'Zafira', 'Combo', 'Vivaro', 'Movano', 'Other'],
-  Hyundai: ['i10', 'i20', 'i30', 'i40', 'Ioniq', 'Kona', 'Tucson', 'Santa Fe', 'Nexo', 'Other'],
-  Kia: ['Picanto', 'Rio', 'Ceed', 'Stonic', 'Niro', 'Sportage', 'Sorento', 'Soul', 'Optima', 'Stinger', 'EV6', 'Other'],
-  Volvo: ['S60', 'S90', 'V60', 'V90', 'XC40', 'XC60', 'XC90', 'C40', 'C70', 'Polestar', 'Other'],
-  Mazda: ['2', '3', '6', 'CX-3', 'CX-30', 'CX-5', 'MX-5', 'MX-30', 'Other'],
-  Mitsubishi: ['Space Star', 'ASX', 'Eclipse Cross', 'Outlander', 'L200', 'Other'],
-  Suzuki: ['Swift', 'Ignis', 'Vitara', 'S-Cross', 'Jimny', 'Other'],
-  Subaru: ['Impreza', 'Legacy', 'Outback', 'XV', 'BRZ', 'Forester', 'Levorg', 'Other'],
-  Lexus: ['CT', 'IS', 'ES', 'LS', 'NX', 'RX', 'UX', 'LC', 'RC', 'Other'],
-  AlfaRomeo: ['Giulietta', 'Giulia', 'Stelvio', '4C', 'Other'],
-  Jaguar: ['XE', 'XF', 'XJ', 'F-Type', 'E-Pace', 'F-Pace', 'I-Pace', 'Other'],
-  LandRover: ['Defender', 'Discovery', 'Discovery Sport', 'Range Rover', 'Range Rover Sport', 'Range Rover Velar', 'Range Rover Evoque', 'Other'],
-  Porsche: ['911', '718', 'Panamera', 'Macan', 'Cayenne', 'Taycan', 'Cayman', 'Boxster', 'Other'],
-  Mini: ['Hatch', 'Convertible', 'Countryman', 'Clubman', 'Electric', 'Other'],
-  Tesla: ['Model S', 'Model 3', 'Model X', 'Model Y', 'Cybertruck', 'Roadster', 'Other'],
-  Dacia: ['Sandero', 'Logan', 'Duster', 'Dokker', 'Lodgy', 'Spring', 'Other'],
-  Seat: ['Mii', 'Ibiza', 'Leon', 'Arona', 'Ateca', 'Tarraco', 'Cupra', 'Other'],
-  Other: ['Other']
-};
+const sortedCarData = Object.keys(carData)
+  .sort()
+  .reduce((obj, key) => {
+    obj[key] = carData[key].sort();
+    return obj;
+  }, {});
 
-const sortedCarData = Object.keys(carData).sort().reduce((obj, key) => {
-  obj[key] = carData[key].sort();
-  return obj;
-}, {});
-
-const fuelTypes = ['Benzina', 'Diesel', 'Hybrid', 'Electric'];
-
-const currentYear = new Date().getFullYear();
-const years = Array.from({length: 30}, (_, i) => currentYear - i);
-
-function CreateListing() {
+export default function CreateListing() {
+  const { currentUser } = useSelector((state) => state.user);
+  const navigate = useNavigate();
   const [files, setFiles] = useState([]);
   const [formData, setFormData] = useState({
     imageUrls: [],
+    title: '',
+    description: '',
+    location: '',
+    price: '',
+    mark: '',
+    model: '',
+    year: '',
+    engineVolume: '',
+    fuelType: '',
+    km: '',
   });
-
   const [imageUploadError, setImageUploadError] = useState(false);
-
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleImageSubmit = (e) => {
+  const handleImageSubmit = () => {
     if (files.length > 0 && files.length + formData.imageUrls.length < 7) {
       setUploading(true);
       setImageUploadError(false);
       const promises = [];
 
       for (let i = 0; i < files.length; i++) {
-        promises.push(storeIamge(files[i]));
+        promises.push(storeImage(files[i]));
       }
 
-      Promise.all(promises).then((urls) => {
-        setFormData({ ...formData, imageUrls: formData.imageUrls.concat(urls) });
-        setImageUploadError(false);
-        setUploading(false);
-
-      }).catch((err) => {
-        setImageUploadError('Image upload failed. (2mb max per image)');
-        setUploading(false);
-      });
-    }else {
+      Promise.all(promises)
+        .then((urls) => {
+          setFormData({
+            ...formData,
+            imageUrls: formData.imageUrls.concat(urls),
+          });
+          setImageUploadError(false);
+          setUploading(false);
+        })
+        .catch((err) => {
+          setImageUploadError('Image upload failed. (2mb max per image)');
+          setUploading(false);
+        });
+    } else {
       setImageUploadError('You can only upload up to 6 images');
       setUploading(false);
     }
   };
 
-  const storeIamge = async (file) => {
+  const storeImage = async (file) => {
     return new Promise((resolve, reject) => {
       const storage = getStorage(app);
       const fileName = new Date().getTime() + file.name;
       const storageRef = ref(storage, fileName);
       const uploadTask = uploadBytesResumable(storageRef, file);
       uploadTask.on(
-        "state_changed",
+        'state_changed',
         (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-          console.log("Upload is " + progress + "% done");
+          const progress =
+            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          console.log('Upload is ' + progress + '% done');
         },
-        (error)=> {
+        (error) => {
           reject(error);
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
             resolve(downloadURL);
-          }
-        )}
+          });
+        }
       );
     });
   };
 
-  const [selectedMark, setSelectedMark] = useState('');
-  const [selectedModel, setSelectedModel] = useState('');
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [year, setYear] = useState('');
-  const [engineVolume, setEngineVolume] = useState('');
-  const [fuelType, setFuelType] = useState('');
-  const [mileage, setMileage] = useState('');
-  const [address, setAddress] = useState('');
-
-  const handleMarkChange = (e) => {
-    setSelectedMark(e.target.value);
-    setSelectedModel('');
-  };
-
-  const handleModelChange = (e) => {
-    setSelectedModel(e.target.value);
-  };
-
-  const models = selectedMark ? sortedCarData[selectedMark] : [];
-
   const handleRemoveImage = (index) => {
-    setFormData({ ...formData, imageUrls: formData.imageUrls.filter((_, i) => i !== index) });
-  }
+    setFormData({
+      ...formData,
+      imageUrls: formData.imageUrls.filter((_, i) => i !== index),
+    });
+  };
 
+  const handleChange = (e) => {
+    const { id, value, checked, type } = e.target;
+
+    if (type === 'checkbox') {
+      setFormData({
+        ...formData,
+        [id]: checked,
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [id]: value,
+      });
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (formData.imageUrls.length < 1)
+        return setError('You must upload at least one image');
+
+      setLoading(true);
+      setError(false);
+
+      const token = localStorage.getItem('authToken');
+
+      const res = await fetch('/api/listing/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...formData,
+          userRef: currentUser._id,
+        }),
+      });
+
+      const data = await res.json();
+      setLoading(false);
+      console.log('Server response:', data); // Adăugat pentru debugging
+      if (!data || data.success === false) {
+        setError(data?.message || 'Something went wrong');
+        console.log(data?.message || 'Something went wrong');
+      } else {
+        console.log('Listing created:', data);
+        navigate(`/listing/${data._id}`);
+      }
+    } catch (error) {
+      setError(error.message);
+      setLoading(false);
+    }
+  };
 
   return (
     <main className='p-3 max-w-4xl mx-auto'>
       <h1 className='text-3xl font-semibold text-center my-7'>
-        Create a Listing
+        Creaza un anunt nou
       </h1>
-      <form className='flex flex-col sm:flex-row gap-4'>
-        <div className="flex flex-col flex-1 gap-4">
-          
-          <input className='border p-3 rounded-lg' type="text" placeholder="Title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            <div className="flex gap-4">
-
-            <select name='mark' id='mark' value={selectedMark} onChange={handleMarkChange} className='p-3 border border-gray-300 rounded-lg w-1/2'>
-              <option value=''>Select a Mark</option>
+      <form onSubmit={handleSubmit} className='flex flex-col sm:flex-row gap-4'>
+        <div className='flex flex-col gap-4 flex-1'>
+          <input
+            type='text'
+            placeholder='Titlul anuntului'
+            className='border p-3 rounded-lg'
+            id='title'
+            required
+            onChange={handleChange}
+            value={formData.title}
+          />
+          <div className="flex gap-4">
+            <select
+              className='border p-3 rounded-lg w-1/2'
+              id='mark'
+              required
+              onChange={handleChange}
+              value={formData.mark}
+            >
+              <option value=''>Selecteaza marca</option>
               {Object.keys(sortedCarData).map((mark) => (
                 <option key={mark} value={mark}>
                   {mark}
                 </option>
               ))}
             </select>
-
-            <select name='model' id='model' value={selectedModel} onChange={handleModelChange} className='p-3 border border-gray-300 rounded-lg w-1/2'>
-              <option value=''>Select a Model</option>
-              {models.map((model) => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
+            <select
+              className='border p-3 rounded-lg w-1/2'
+              id='model'
+              required
+              onChange={handleChange}
+              value={formData.model}
+            >
+              <option value=''>Selecteaza modelul</option>
+              {formData.mark &&
+                sortedCarData[formData.mark].map((model) => (
+                  <option key={model} value={model}>
+                    {model}
+                  </option>
+                ))}
             </select>
-            </div>
-          <textarea className='border p-3 rounded-lg' placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
-          <input className='border p-3 rounded-lg mb-4' type="number" placeholder="Price" value={price} onChange={(e) => setPrice(e.target.value)} />
-          <select className='border p-3 rounded-lg' value={year} onChange={(e) => setYear(e.target.value)}>
-            <option value=''>Select a Year</option>
+          </div>
+          <textarea
+            type='text'
+            placeholder='Descriere'
+            className='border p-3 rounded-lg'
+            id='description'
+            required
+            onChange={handleChange}
+            value={formData.description}
+          />
+          <input
+            type='number'
+            placeholder='Pret'
+            className='border p-3 rounded-lg'
+            id='price'
+            required
+            onChange={handleChange}
+            value={formData.price}
+          />
+          <select
+            className='border p-3 rounded-lg'
+            id='year'
+            required
+            onChange={handleChange}
+            value={formData.year}
+          >
+            <option value=''>Anul fabricatiei</option>
             {years.map((year) => (
               <option key={year} value={year}>
                 {year}
               </option>
             ))}
           </select>
-          <input className='border p-3 rounded-lg' type="number" placeholder="Engine Volume" value={engineVolume} onChange={(e) => setEngineVolume(e.target.value)} />
-          <select className='border p-3 rounded-lg' value={fuelType} onChange={(e) => setFuelType(e.target.value)}>
-            <option value=''>Select a Fuel Type</option>
+          <input
+            type='number'
+            placeholder='Volum motor'
+            className='border p-3 rounded-lg'
+            id='engineVolume'
+            required
+            onChange={handleChange}
+            value={formData.engineVolume}
+          />
+          <select
+            className='border p-3 rounded-lg'
+            id='fuelType'
+            required
+            onChange={handleChange}
+            value={formData.fuelType}
+          >
+            <option value=''>Selecteaza tipul combustibilului</option>
             {fuelTypes.map((type) => (
               <option key={type} value={type}>
                 {type}
               </option>
             ))}
           </select>
-          <input className='border p-3 rounded-lg' type="number" placeholder="Mileage" value={mileage} onChange={(e) => setMileage(e.target.value)} />
-          <input className='border p-3 rounded-lg' type="text" placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} />
+          <input
+            type='number'
+            placeholder='Kilometraj'
+            className='border p-3 rounded-lg'
+            id='km'
+            required
+            onChange={handleChange}
+            value={formData.km}
+          />
+          <input
+            type='text'
+            placeholder='Locație'
+            className='border p-3 rounded-lg'
+            id='location'
+            required
+            onChange={handleChange}
+            value={formData.location}
+          />
         </div>
-        <div className="flex flex-col flex-1 gap-4">
-          <p className='font-semibold'>Images:
-          <span className='font-normal text-gray-600 ml-2'>The first image will be the cover (max 6)</span>
+        <div className='flex flex-col flex-1 gap-4'>
+          <p className='font-semibold'>
+            Images:
+            <span className='font-normal text-gray-600 ml-2'>
+              Prima imagine va fi imaginea principala a anuntului tau (max 6)
+            </span>
           </p>
-          <div className="flex gap-4">
-            <input onChange={(e)=>setFiles(e.target.files)} className='p-3 border border-gray-300 rounded w-full' type="file" id='images' accept='image/*' multiple />
-            <button disabled={uploading} type='button' onClick={handleImageSubmit} className='p-3 text-green-700 border border-green-700 rounded uppercase hover:shadow-lg disabled:opacity-80'>{uploading ? 'Uploading... :' : 'Upload'}</button>
+          <div className='flex gap-4'>
+            <input
+              onChange={(e) => setFiles(e.target.files)}
+              className='p-3 border border-gray-300 rounded w-full'
+              type='file'
+              id='images'
+              accept='image/*'
+              multiple
+            />
+            <button
+              type='button'
+              disabled={uploading}
+              onClick={handleImageSubmit}
+              className='p-3 text-green-700 border border-green-700 rounded uppercase hover:shadow-lg disabled:opacity-80'
+            >
+              {uploading ? 'Uploading...' : 'Upload'}
+            </button>
           </div>
-          <p className='text-red-700 text-sm'>{imageUploadError && imageUploadError}</p>
-          {
-            formData.imageUrls.length > 0 && formData.imageUrls.map((url, index) => (
-              <div key={url} className='flex justify-between p-3 border items-center'>
-                <img src={url} alt='car' className='w-40 h-40 object-cover rounded-lg' />
-                <button type='button' onClick={() => handleRemoveImage(index)} className='p-3 text-red-700 rounded-lg uppercase hover:opacity-75'>Delete</button>
+          <p className='text-red-700 text-sm'>
+            {imageUploadError && imageUploadError}
+          </p>
+          {formData.imageUrls.length > 0 &&
+            formData.imageUrls.map((url, index) => (
+              <div
+                key={url}
+                className='flex justify-between p-3 border items-center'
+              >
+                <img
+                  src={url}
+                  alt='car'
+                  className='w-40 h-40 object-cover rounded-lg'
+                />
+                <button
+                  type='button'
+                  onClick={() => handleRemoveImage(index)}
+                  className='p-3 text-red-700 rounded-lg uppercase hover:opacity-75'
+                >
+                  Delete
+                </button>
               </div>
-              
-            ))
-          }
-        <button className='p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80'>Create Listing</button>
+            ))}
+          <button
+            disabled={loading || uploading}
+            className='p-3 bg-slate-700 text-white rounded-lg uppercase hover:opacity-95 disabled:opacity-80'
+          >
+            {loading ? 'Se creeaza' : 'Creaza un anunt nou!'}
+          </button>
+          {error && <p className='text-red-700 text-sm'>{error}</p>}
         </div>
-        
       </form>
     </main>
   );
 }
-
-export default CreateListing;
