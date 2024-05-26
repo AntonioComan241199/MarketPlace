@@ -9,8 +9,8 @@ import {
 } from 'firebase/storage';
 import { useSelector } from 'react-redux';
 import { app } from '../firebase';
-import carData from '../data/carData';
-import { fuelTypes, years } from '../data/constants';
+import {carData} from '../../../shared/carData.js';
+import { fuelTypes, years } from '../../../shared/constants.js';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const sortedCarData = Object.keys(carData)

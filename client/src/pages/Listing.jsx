@@ -87,6 +87,12 @@ export default function Listing() {
             <p className='text-2xl font-semibold'>
               {listing.title} - {' '} {listing.price} {' EUR'}
             </p>
+            <ul>
+              <li className='flex items-center gap-1 whitespace-nowrap '>
+                <FaLocationDot className='text-lg' />
+                {listing.location}
+              </li>
+            </ul>
             <div className='flex gap-4'>
               <p className='bg-red-900 w-full max-w-[350px] text-white text-center p-1 rounded-md'>
                 {'Marca: '}{listing.mark}
@@ -116,10 +122,7 @@ export default function Listing() {
                 <MdOutlinePriceChange  className='text-lg' />
                 {listing.price} {'EUR'}
               </li>
-              <li className='flex items-center gap-1 whitespace-nowrap '>
-                <FaLocationDot className='text-lg' />
-                {listing.location}
-              </li>
+              
             </ul>
             <p className='text-slate-800'>
                 <span className='font-semibold text-black'>Description: <hr /> </span>
