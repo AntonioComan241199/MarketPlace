@@ -1,74 +1,145 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { carData } from '../../../shared/carData.js'; // Adjust the import path as necessary
 import { fuelTypes } from '../../../shared/constants.js'; // Adjust the import path as necessary
+import ListingItem from '../components/ListingItem.jsx';
 
 export default function Search() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [yearStart, setYearStart] = useState('');
-  const [yearEnd, setYearEnd] = useState('');
-  const [selectedMark, setSelectedMark] = useState('');
-  const [models, setModels] = useState([]);
-  const [availableModels, setAvailableModels] = useState([]);
-  const [selectedFuelTypes, setSelectedFuelTypes] = useState([]);
-  const [sortOrder, setSortOrder] = useState('createdAt');
+  const navigate = useNavigate();
+  const [sidebardata, setSidebardata] = useState({
+    searchTerm: '',
+    yearStart: '',
+    yearEnd: '',
+    selectedMark: '',
+    models: [],
+    selectedFuelTypes: [],
+    sort: 'createdAt',
+    order: 'desc',
+  });
+
+  const [loading, setLoading] = useState(false);
   const [listings, setListings] = useState([]);
+  const [availableModels, setAvailableModels] = useState([]);
 
   useEffect(() => {
-    if (selectedMark && carData[selectedMark]) {
-      setAvailableModels(carData[selectedMark]);
+    const urlParams = new URLSearchParams(location.search);
+    const searchTermFromUrl = urlParams.get('searchTerm');
+    const yearStartFromUrl = urlParams.get('yearStart');
+    const yearEndFromUrl = urlParams.get('yearEnd');
+    const selectedMarkFromUrl = urlParams.get('selectedMark');
+    const modelsFromUrl = urlParams.get('models') ? urlParams.get('models').split(',') : [];
+    const selectedFuelTypesFromUrl = urlParams.get('selectedFuelTypes') ? urlParams.get('selectedFuelTypes').split(',') : [];
+    const sortFromUrl = urlParams.get('sort');
+    const orderFromUrl = urlParams.get('order');
+
+    if (
+      searchTermFromUrl ||
+      yearStartFromUrl ||
+      yearEndFromUrl ||
+      selectedMarkFromUrl ||
+      modelsFromUrl.length > 0 ||
+      selectedFuelTypesFromUrl.length > 0 ||
+      sortFromUrl ||
+      orderFromUrl
+    ) {
+      setSidebardata({
+        searchTerm: searchTermFromUrl || '',
+        yearStart: yearStartFromUrl || '',
+        yearEnd: yearEndFromUrl || '',
+        selectedMark: selectedMarkFromUrl || '',
+        models: modelsFromUrl,
+        selectedFuelTypes: selectedFuelTypesFromUrl,
+        sort: sortFromUrl || 'createdAt',
+        order: orderFromUrl || 'desc',
+      });
+    }
+
+    const fetchListings = async () => {
+      setLoading(true);
+      const searchQuery = urlParams.toString();
+      const res = await fetch(`/api/listing/getListing?${searchQuery}`);
+      const data = await res.json();
+      setListings(data);
+      setLoading(false);
+    };
+
+    fetchListings();
+  }, [location.search]);
+
+  useEffect(() => {
+    if (sidebardata.selectedMark && carData[sidebardata.selectedMark]) {
+      setAvailableModels(carData[sidebardata.selectedMark]);
     } else {
       setAvailableModels([]);
     }
-  }, [selectedMark]);
+  }, [sidebardata.selectedMark]);
 
-  const handleModelChange = (event) => {
-    const value = event.target.value;
-    setModels((prevModels) =>
-      prevModels.includes(value)
-        ? prevModels.filter((model) => model !== value)
-        : [...prevModels, value]
-    );
+  const handleChange = (e) => {
+    const { id, value, checked } = e.target;
+    if (id === 'searchTerm') {
+      setSidebardata({ ...sidebardata, searchTerm: value });
+    }
+    if (id === 'yearStart') {
+      setSidebardata({ ...sidebardata, yearStart: value });
+    }
+    if (id === 'yearEnd') {
+      setSidebardata({ ...sidebardata, yearEnd: value });
+    }
+    if (id === 'mark') {
+      setSidebardata({ ...sidebardata, selectedMark: value });
+    }
+    if (id === 'models') {
+      setSidebardata((prev) => ({
+        ...prev,
+        models: prev.models.includes(value)
+          ? prev.models.filter((model) => model !== value)
+          : [...prev.models, value],
+      }));
+    }
+    if (fuelTypes.includes(id)) {
+      setSidebardata((prev) => ({
+        ...prev,
+        selectedFuelTypes: prev.selectedFuelTypes.includes(id)
+          ? prev.selectedFuelTypes.filter((fuelType) => fuelType !== id)
+          : [...prev.selectedFuelTypes, id],
+      }));
+    }
+    if (id === 'sort_order') {
+      const [sort, order] = value.split('_');
+      setSidebardata({ ...sidebardata, sort, order });
+    }
   };
 
-  const handleFuelTypeChange = (event) => {
-    const value = event.target.value;
-    setSelectedFuelTypes((prevFuelTypes) =>
-      prevFuelTypes.includes(value)
-        ? prevFuelTypes.filter((fuelType) => fuelType !== value)
-        : [...prevFuelTypes, value]
-    );
-  };
-
-  const handleSearch = async (event) => {
-    event.preventDefault();
-    const queryParams = new URLSearchParams({
-      searchTerm,
-      yearStart,
-      yearEnd,
-      model: models.join(','),
-      fuelType: selectedFuelTypes.join(','),
-      sort: sortOrder,
-    });
-
-    const response = await fetch(`http://localhost:3000/api/listing/getListings?${queryParams.toString()}`);
-    const data = await response.json();
-    setListings(data);
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const urlParams = new URLSearchParams();
+    urlParams.set('searchTerm', sidebardata.searchTerm);
+    urlParams.set('yearStart', sidebardata.yearStart);
+    urlParams.set('yearEnd', sidebardata.yearEnd);
+    urlParams.set('selectedMark', sidebardata.selectedMark);
+    urlParams.set('models', sidebardata.models.join(','));
+    urlParams.set('selectedFuelTypes', sidebardata.selectedFuelTypes.join(','));
+    urlParams.set('sort', sidebardata.sort);
+    urlParams.set('order', sidebardata.order);
+    const searchQuery = urlParams.toString();
+    navigate(`/search?${searchQuery}`);
   };
 
   return (
     <div className='flex flex-col md:flex-row'>
       <div className='p-7 border-b-2 md:border-r-2 md:min-h-screen'>
-        <form className='flex flex-col gap-8' onSubmit={handleSearch}>
+        <form onSubmit={handleSubmit} className='flex flex-col gap-8'>
           <div className='flex items-center gap-2'>
             <label className='whitespace-nowrap font-semibold'>Cuvinte cheie:</label>
             <input
               type='text'
               id='searchTerm'
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder='Search...'
               className='border rounded-lg p-3 w-full'
+              value={sidebardata.searchTerm}
+              onChange={handleChange}
             />
           </div>
           <div className='flex items-center gap-2'>
@@ -76,10 +147,10 @@ export default function Search() {
             <input
               type='number'
               id='yearStart'
-              value={yearStart}
-              onChange={(e) => setYearStart(e.target.value)}
               placeholder='Year Start'
               className='border rounded-lg p-3 w-full'
+              value={sidebardata.yearStart}
+              onChange={handleChange}
             />
           </div>
           <div className='flex items-center gap-2'>
@@ -87,18 +158,18 @@ export default function Search() {
             <input
               type='number'
               id='yearEnd'
-              value={yearEnd}
-              onChange={(e) => setYearEnd(e.target.value)}
               placeholder='Year End'
               className='border rounded-lg p-3 w-full'
+              value={sidebardata.yearEnd}
+              onChange={handleChange}
             />
           </div>
           <div className='flex items-center gap-2'>
             <label className='font-semibold'>Marcă:</label>
             <select
               id='mark'
-              value={selectedMark}
-              onChange={(e) => setSelectedMark(e.target.value)}
+              value={sidebardata.selectedMark}
+              onChange={handleChange}
               className='border rounded-lg p-3 w-full'
             >
               <option value=''>Selectează o marcă</option>
@@ -112,10 +183,10 @@ export default function Search() {
           <div className='flex flex-col gap-2'>
             <label className='font-semibold'>Model:</label>
             <select
-              id='model'
+              id='models'
               multiple
-              value={models}
-              onChange={handleModelChange}
+              value={sidebardata.models}
+              onChange={handleChange}
               className='border rounded-lg p-3 w-full'
             >
               {availableModels.map((model) => (
@@ -132,8 +203,9 @@ export default function Search() {
                 <div key={fuelType} className='flex gap-2'>
                   <input
                     type='checkbox'
-                    value={fuelType}
-                    onChange={handleFuelTypeChange}
+                    id={fuelType}
+                    checked={sidebardata.selectedFuelTypes.includes(fuelType)}
+                    onChange={handleChange}
                     className='w-5'
                   />
                   <span>{fuelType}</span>
@@ -144,15 +216,15 @@ export default function Search() {
           <div className='flex items-center gap-2'>
             <label className='font-semibold'>Sort:</label>
             <select
-              id='sortOrder'
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
+              onChange={handleChange}
+              defaultValue={'created_at_desc'}
+              id='sort_order'
               className='border rounded-lg p-3'
             >
-              <option value='createdAt'>Latest</option>
-              <option value='-createdAt'>Oldest</option>
-              <option value='price'>Price low to high</option>
-              <option value='-price'>Price high to low</option>
+              <option value='price_desc'>Price high to low</option>
+              <option value='price_asc'>Price low to high</option>
+              <option value='createdAt_desc'>Latest</option>
+              <option value='createdAt_asc'>Oldest</option>
             </select>
           </div>
           <button type='submit' className='bg-slate-700 text-white p-3 rounded-lg uppercase hover:opacity-95'>
@@ -160,16 +232,17 @@ export default function Search() {
           </button>
         </form>
       </div>
-      <div className='p-7'>
+      <div className='flex-1'>
         <h1 className='text-3xl font-semibold border-b p-3 text-slate-700 mt-5'>Listing results:</h1>
-        <div>
-          {listings.map((listing) => (
-            <div key={listing._id} className='p-3 border-b'>
-              <h2 className='text-xl'>{listing.title}</h2>
-              <p>{listing.description}</p>
-              <p>{listing.price}</p>
-            </div>
-          ))}
+        <div className="p-7 flex flex-wrap gap-4">
+          {!loading && listings.length === 0 && <p className='text-xl text-slate-700'>No listings found</p>}
+          {loading && <p className='text-xl text-slate-700 text-center'>Loading...</p>}
+
+          {
+            !loading && listings && listings.map((listing) => (
+              <ListingItem key={listing._id} listing={listing} />
+            ))
+          }
         </div>
       </div>
     </div>

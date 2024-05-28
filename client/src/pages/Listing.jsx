@@ -85,7 +85,7 @@ export default function Listing() {
           )}
           <div className='flex flex-col max-w-4xl mx-auto p-3 my-7 gap-4 border-double border-4 rounded-lg'>
             <p className='text-2xl font-semibold'>
-              {listing.title} - {' '} {listing.price} {' EUR'}
+              {listing.title} - {' '} {Number(listing.price).toLocaleString('RO')}{" EUR"}
             </p>
             <ul>
               <li className='flex items-center gap-1 whitespace-nowrap '>
@@ -120,7 +120,7 @@ export default function Listing() {
               </li>
               <li className='flex items-center gap-1 whitespace-nowrap '>
                 <MdOutlinePriceChange  className='text-lg' />
-                {listing.price} {'EUR'}
+                {Number(listing.price).toLocaleString('RO')}{" EUR"}
               </li>
               
             </ul>

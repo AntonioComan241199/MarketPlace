@@ -258,7 +258,7 @@ export default function Profile() {
                 to={`/listing/${listing._id}`}
               >
                 <p>{listing.title}</p>
-                <p>{listing.price} EURO</p>
+                <p>{Number(listing.price).toLocaleString('RO')}{" EURO"}</p>
               </Link>
 
               <div className='flex flex-col item-center'>
